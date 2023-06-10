@@ -94,6 +94,76 @@ public class Model extends Observable {
         setChanged();
     }
 
+    /** Tilt a single row or column */
+    private boolean tiltColumn(int col, Side side) {
+        boolean changed = false;
+        int mergeCount = 0;
+        int N = board.size();
+        int from, to, step;
+
+        if (side == Side.NORTH || side == Side.EAST) {
+            from = N - 1;
+            to = -1;
+            step = -1;
+        }
+        else {
+            from = 0;
+            to = N;
+            step = 1;
+        }
+
+        for (int row = from; row != to; row += step) {
+            // Get the target tile
+            Tile t;
+            if (side == Side.SOUTH || side == Side.NORTH) {
+                t = board.tile(col, row);
+            }
+            else {
+                t = board.tile(row, col);
+            }
+
+            // Avoid to move empty tile
+            if (t == null) {
+                continue;
+            }
+            // Find which slot should the tile to be moved to
+            int dest = row;
+            for (int r = row - step; r != (from - step) + (mergeCount * step); r -= step) {
+                Tile t2;
+                if (side == Side.SOUTH || side == Side.NORTH) {
+                    t2 = board.tile(col, r);
+                }
+                else {
+                    t2 = board.tile(r, col);
+                }
+                // Move to that slot if empty
+                if (t2 == null) {
+                    dest = r;
+                }
+                else {
+                    // Prepare to merge if they have same value
+                    if (t2.value() == t.value()) {
+                        dest = r;
+                        mergeCount += 1;
+                        score = score + t.value() * 2;
+                    }
+                    break;
+                }
+            }
+            // Move tile
+            if (dest != row) {
+                if (side == Side.SOUTH || side == Side.NORTH) {
+                    board.move(col, dest, t);
+                }
+                else {
+                    board.move(dest, col, t);
+                }
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
     /** Tilt the board toward SIDE. Return true iff this changes the board.
      *
      * 1. If two Tile objects are adjacent in the direction of motion and have
@@ -109,11 +179,15 @@ public class Model extends Observable {
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
-
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
-
+        int N = board.size();
+        for (int col = 0; col < N; col++) {
+            if (tiltColumn(col, side)) {
+                changed = true;
+            }
+        }
         checkGameOver();
         if (changed) {
             setChanged();
@@ -138,6 +212,14 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        int N = b.size();
+        for (int col = 0; col < N; col++) {
+            for (int row = 0; row < N; row++) {
+                if (b.tile(col, row) == null) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -148,6 +230,18 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
+        int N = b.size();
+        for (int col = 0; col < N; col ++) {
+            for (int row = 0; row < N; row ++) {
+                Tile t = b.tile(col, row);
+                if (t == null) {
+                    continue;
+                }
+                if (t.value() == MAX_PIECE) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -159,6 +253,33 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
+        if (emptySpaceExists(b)) {
+            return true;
+        }
+        // All the spaces have been occupied
+        int N = b.size();
+        for (int col = 0; col < N; col++) {
+            for (int row = 0; row < N; row ++) {
+                int curValue = b.tile(col, row).value();
+                // check around tiles have value same as current tile's value
+                // Up
+                if (row - 1 >= 0 && b.tile(col, row - 1).value() == curValue) {
+                    return true;
+                }
+                // Down
+                if (row + 1 < N && b.tile(col, row + 1).value() == curValue) {
+                    return true;
+                }
+                // Left
+                if (col - 1 >= 0 && b.tile(col - 1, row).value() == curValue) {
+                    return true;
+                }
+                // Right
+                if (col + 1 < N && b.tile(col + 1, row).value() == curValue) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 

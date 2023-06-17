@@ -18,6 +18,7 @@ public class SquarePrimesTest {
         assertTrue(changed);
     }
 
+    /** Test when all elements are not primes */
     @Test
     public void testSquarePrimes1() {
         IntList lst = IntList.of(24, 25, 26);
@@ -26,6 +27,7 @@ public class SquarePrimesTest {
         assertFalse(changed);
     }
 
+    /** Test when all elements are primes */
     @Test
     public void testSquarePrimes2() {
         IntList lst = IntList.of(2, 3, 5, 7, 11, 13, 17, 19);

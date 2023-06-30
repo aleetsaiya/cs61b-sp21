@@ -1,7 +1,8 @@
 package deque;
+import edu.princeton.cs.algs4.StdRandom;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.Test;
 import static org.junit.Assert.*;
-import java.util.Random;
 
 public class ArrayDequeTest {
     @Test
@@ -91,22 +92,6 @@ public class ArrayDequeTest {
     }
 
     @Test
-    /* Test if get method is correct */
-    public void getTest() {
-        ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
-        ad.addLast(10);
-        ad.addLast(20);
-        ad.addFirst(5);
-        ad.addLast(30);
-        ad.addFirst(2);
-
-        assertEquals(2, (int)ad.get(0));
-        assertEquals(10, (int)ad.get(2));
-        assertEquals(30, (int)ad.get(4));
-        assertNull(ad.get(5));
-    }
-
-    @Test
     /* Add large number of elements into ArrayDeque. Check the order is correct */
     public void bigADTest() {
         ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
@@ -134,6 +119,100 @@ public class ArrayDequeTest {
         }
         double memoryUsage = ad.memoryUsage();
         assertTrue(memoryUsage >= 0.25);
-        System.out.println(memoryUsage);
+    }
+
+    @Test
+    public void addFirstRemoveLastIsEmptyTest() {
+        ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
+        CorrectDeque<Integer> cd = new CorrectDeque<Integer>();
+        for (int i = 0; i < 100000; i++) {
+            int operationNumber = StdRandom.uniform(0, 4);
+            if (operationNumber == 0) {
+                ad.addFirst(i);
+                cd.addFirst(i);
+            }
+            else if (operationNumber == 1) {
+                Object cd1 = cd.removeLast();
+                Object ad1 = ad.removeLast();
+                assertEquals(cd1, ad1);
+            }
+            else if (operationNumber == 2) {
+                assertEquals(cd.size(), ad.size());
+            }
+            else if (operationNumber == 3) {
+                assertEquals(cd.isEmpty(), ad.isEmpty());
+            }
+        }
+    }
+
+    @Test
+    public void addFirstRemoveFirstIsEmptyTest() {
+        ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
+        CorrectDeque<Integer> cd = new CorrectDeque<Integer>();
+
+        for (int i = 0; i < 100000; i++) {
+            int operationNumber = StdRandom.uniform(0, 4);
+            if (operationNumber == 0) {
+                ad.addFirst(i);
+                cd.addFirst(i);
+            }
+            else if (operationNumber == 1) {
+                assertEquals(cd.size(), ad.size());
+            }
+            else if (operationNumber == 2) {
+                assertEquals(cd.removeFirst(), ad.removeFirst());
+            }
+            else if (operationNumber == 3) {
+                assertEquals(cd.isEmpty(), ad.isEmpty());
+            }
+        }
+    }
+
+    @Test
+    public void fillUpEmptyFillUpAgain() {
+        ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
+        CorrectDeque<Integer> cd = new CorrectDeque<Integer>();
+        for (int i = 0; i < 100; i++) {
+            ad.addLast(i);
+            cd.addLast(i);
+        }
+        for (int i = 0; i < 100; i++) {
+            assertEquals(cd.removeLast(), ad.removeLast());
+        }
+        assertEquals(cd.isEmpty(), ad.isEmpty());
+        for (int i = 0; i < 100; i++) {
+            ad.addFirst(i);
+            cd.addFirst(i);
+        }
+        for (int i = 0; i < 100; i++) {
+            assertEquals(cd.get(i), ad.get(i));
+        }
+        assertEquals(cd.isEmpty(), ad.isEmpty());
+    }
+
+    @Test
+    /* Test if get method is correct */
+    public void getTest() {
+        ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
+        CorrectDeque<Integer> cd = new CorrectDeque<Integer>();
+        for (int i = 0; i < 100000; i++) {
+            int operationNumber = StdRandom.uniform(0, 3);
+            if (operationNumber == 0) {
+                ad.addLast(i);
+                cd.addLast(i);
+            }
+            else if (operationNumber == 1) {
+                assertEquals(cd.removeLast(), ad.removeLast());
+            }
+            else if (operationNumber == 2) {
+                assertEquals(cd.size(), ad.size());
+                if (cd.size() == 0) {
+                    cd.addFirst(i);
+                    ad.addFirst(i);
+                }
+                int randomIdx = StdRandom.uniform(0, cd.size());
+                assertEquals(cd.get(randomIdx), ad.get(randomIdx));
+            }
+        }
     }
 }

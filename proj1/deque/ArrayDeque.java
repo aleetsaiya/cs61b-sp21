@@ -6,7 +6,7 @@ package deque;
  *   2. Last item is located at nextLast - 1
  *   3. Items will be continuous from the first item to the last item (no empty block between them)
  */
-public class ArrayDeque<T> implements Deque<T>{
+public class ArrayDeque<T> implements Deque<T> {
     private int size;
     private T[] items;
     private int nextFirst;
@@ -50,7 +50,7 @@ public class ArrayDeque<T> implements Deque<T>{
     }
 
     @Override
-    public void addFirst(T item){
+    public void addFirst(T item) {
         items[nextFirst] = item;
         size += 1;
         // Update nextFirst
@@ -65,7 +65,7 @@ public class ArrayDeque<T> implements Deque<T>{
     };
 
     @Override
-    public void addLast(T item){
+    public void addLast(T item) {
         items[nextLast] = item;
         size += 1;
         // Update nextLast
@@ -85,12 +85,12 @@ public class ArrayDeque<T> implements Deque<T>{
     }
 
     @Override
-    public int size(){
+    public int size() {
         return size;
     };
 
     @Override
-    public void printDeque(){
+    public void printDeque() {
         int firstItemIndex = nextFirst + 1;
         if (firstItemIndex == items.length) {
             firstItemIndex = 0;
@@ -105,26 +105,28 @@ public class ArrayDeque<T> implements Deque<T>{
     };
 
     @Override
-    public T removeFirst(){
+    public T removeFirst() {
         if (size == 0) {
             return null;
+        }
+        if (memoryUsage() < 0.25) {
+            resize(items.length / 4);
         }
         int index = (nextFirst + 1) % items.length;
         T target = items[index];
         items[index] = null;
         nextFirst = index;
         size -= 1;
-
-        if (items.length / 4 >= size) {
-            resize(items.length / 4);
-        }
         return target;
     };
 
     @Override
-    public T removeLast(){
+    public T removeLast() {
         if (size == 0) {
             return null;
+        }
+        if (memoryUsage() < 0.25) {
+            resize(items.length / 4);
         }
         int index = nextLast - 1;
         if (index < 0) {
@@ -134,10 +136,6 @@ public class ArrayDeque<T> implements Deque<T>{
         items[index] = null;
         nextLast = index;
         size -= 1;
-
-        if (items.length / 4 >= size) {
-            resize(items.length / 4);
-        }
         return target;
     };
 
@@ -147,7 +145,7 @@ public class ArrayDeque<T> implements Deque<T>{
      * @return
      */
     @Override
-    public T get(int index){
+    public T get(int index) {
         if (index >= size) {
             return null;
         }

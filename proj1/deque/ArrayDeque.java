@@ -8,7 +8,7 @@ import java.util.Iterator;
  *   2. Last item is located at nextLast - 1
  *   3. Items will be continuous from the first item to the last item (no empty block between them)
  */
-public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
+public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     private int size;
     private T[] items;
     private int nextFirst;
@@ -155,8 +155,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
         int itemsCountToEnd = L - (nextFirst + 1);
         if (index < itemsCountToEnd) {
             return items[nextFirst + 1 + index];
-        }
-        else {
+        } else {
             return items[index - itemsCountToEnd];
         }
     };
@@ -164,14 +163,14 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
     private class ArrayDequeIterator<T> implements Iterator<T> {
         private ArrayDeque<T> deque;
         private int index;
-        public ArrayDequeIterator(ArrayDeque deque) {
+        ArrayDequeIterator(ArrayDeque deque) {
             this.deque = deque;
             this.index = 0;
         }
 
         @Override
         public boolean hasNext() {
-           return index < deque.size();
+            return index < deque.size();
         }
 
        @Override
@@ -207,7 +206,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
         return true;
     }
 
-    public double memoryUsage() {
-        return size / (double)items.length;
+    private double memoryUsage() {
+        return size / (double) items.length;
     }
 }

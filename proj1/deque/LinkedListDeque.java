@@ -121,7 +121,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
         private DoublyNode<T> sentinel;
         private DoublyNode<T> current;
 
-        public LinkedListDequeIterator(DoublyNode sentinel) {
+        LinkedListDequeIterator(DoublyNode sentinel) {
             this.sentinel = sentinel;
             this.current = sentinel.next;
         }
@@ -148,8 +148,7 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
     public boolean equals(Object o) {
         if (this == o) {
             return true;
-        }
-        else if (!(o instanceof Deque)) {
+        } else if (!(o instanceof Deque)) {
             return false;
         }
         Deque d = (Deque) o;

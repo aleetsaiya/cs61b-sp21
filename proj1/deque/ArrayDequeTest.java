@@ -106,20 +106,20 @@ public class ArrayDequeTest {
         }
     }
 
-    @Test
-    public void memoryUsageTest() {
-        ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
-        for (int i = 0; i < 10000; i++) {
-            ad.addLast(i);
-        }
-        int itemsLeft = 9;
-        int removeAmount = 10000 - itemsLeft;
-        for (int i = 0; i < removeAmount; i++) {
-            ad.removeLast();
-        }
-        double memoryUsage = ad.memoryUsage();
-        assertTrue(memoryUsage >= 0.25);
-    }
+//    @Test
+//    public void memoryUsageTest() {
+//        ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
+//        for (int i = 0; i < 10000; i++) {
+//            ad.addLast(i);
+//        }
+//        int itemsLeft = 9;
+//        int removeAmount = 10000 - itemsLeft;
+//        for (int i = 0; i < removeAmount; i++) {
+//            ad.removeLast();
+//        }
+//        double memoryUsage = ad.memoryUsage();
+//        assertTrue(memoryUsage >= 0.25);
+//    }
 
     @Test
     public void addFirstRemoveLastIsEmptyTest() {

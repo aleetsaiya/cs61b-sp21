@@ -2,13 +2,12 @@ package deque;
 
 import java.util.Comparator;
 
-public class MaxArrayDeque<T> {
+public class MaxArrayDeque<T> extends ArrayDeque<T>{
     // Using ArrayDeque as the data structure behind MaxArrayDeque
-    private ArrayDeque<T> ad;
     private Comparator<T> comparator;
 
     public MaxArrayDeque(Comparator<T> c ) {
-        this.ad = new ArrayDeque<T>();
+        super();
         this.comparator = c;
     }
 
@@ -26,14 +25,14 @@ public class MaxArrayDeque<T> {
      * @return max item
      */
     public T max(Comparator<T> c) {
-        int size = ad.size();
+        int size = size();
         if (size == 0) {
             return null;
         }
         int index = 1;
-        T maxItem = ad.get(0);
+        T maxItem = get(0);
         while (index < size) {
-            T currentItem = ad.get(index);
+            T currentItem = get(index);
             if (c.compare(maxItem, currentItem) < 0) {
                 maxItem = currentItem;
             }
@@ -41,23 +40,4 @@ public class MaxArrayDeque<T> {
         }
         return maxItem;
     }
-
-    public void addLast(T item) { ad.addLast(item); }
-
-    public void addFirst(T item) { ad.addFirst(item); }
-
-    public T removeLast() { return ad.removeLast(); };
-
-    public T removeFirst() { return ad.removeFirst(); }
-
-    public int size() { return ad.size(); }
-
-    public boolean isEmpty() { return ad.isEmpty(); }
-
-    public void printDeque() { ad.printDeque(); }
-
-    /* Same methods as ArrayDeque */
-    public T get(int index) { return ad.get(index); }
-
-    public double memoryUsage() { return ad.memoryUsage(); }
 }

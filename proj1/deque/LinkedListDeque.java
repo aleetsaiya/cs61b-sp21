@@ -1,12 +1,14 @@
 package deque;
 
+import java.util.Iterator;
+
 /**
  * Invariants:
  *   1. head is sentinel node with dummy value inside
  *   2. first item is head.next
  *   3. last item is head.prev
  */
-public class LinkedListDeque<T> implements Deque<T> {
+public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
     private DoublyNode<T> head;
     private int size;
 
@@ -114,6 +116,53 @@ public class LinkedListDeque<T> implements Deque<T> {
         }
         return ptr.item;
     };
+
+    private class LinkedListDequeIterator<T> implements Iterator<T> {
+        private DoublyNode<T> sentinel;
+        private DoublyNode<T> current;
+
+        public LinkedListDequeIterator(DoublyNode sentinel) {
+            this.sentinel = sentinel;
+            this.current = sentinel.next;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return current != sentinel;
+        }
+
+        @Override
+        public T next() {
+            T res = current.item;
+            current = current.next;
+            return res;
+        }
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return new LinkedListDequeIterator<T>(head);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        else if (!(o instanceof Deque)) {
+            return false;
+        }
+        Deque d = (Deque) o;
+        if (d.size() != this.size) {
+            return false;
+        }
+        for (int i = 0; i < size; i++) {
+            if (!get(i).equals(d.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
 
 
     private T getRecursive(DoublyNode<T> node, int index) {

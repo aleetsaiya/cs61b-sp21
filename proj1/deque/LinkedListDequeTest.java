@@ -107,4 +107,18 @@ public class LinkedListDequeTest {
             assertEquals("Should have the same value", i, (double) lld1.removeLast(), 0.0);
         }
     }
+
+    @Test
+    public void iterableTest() {
+        LinkedListDeque<Integer> lld = new LinkedListDeque<Integer>();
+        for (int i = 0; i < 5; i++) {
+            lld.addLast(i);
+        }
+        int[] actual = new int[5];
+        for (int i : lld) {
+            actual[i] = i;
+        }
+        int[] expected = new int[]{0, 1, 2, 3, 4};
+        assertArrayEquals(expected, actual);
+    }
 }

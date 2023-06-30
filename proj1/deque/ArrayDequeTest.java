@@ -215,4 +215,18 @@ public class ArrayDequeTest {
             }
         }
     }
+
+    @Test
+    public void iterableTest() {
+        ArrayDeque<Integer> ad = new ArrayDeque<Integer>();
+        for (int i = 0; i < 5; i++) {
+            ad.addLast(i);
+        }
+        int[] res = new int[5];
+        for (int i : ad) {
+            res[i] = i;
+        }
+        int[] expected = new int[]{0, 1, 2, 3, 4};
+        assertArrayEquals(expected, res);
+    }
 }

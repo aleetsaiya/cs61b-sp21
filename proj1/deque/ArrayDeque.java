@@ -1,12 +1,14 @@
 package deque;
 
+import java.util.Iterator;
+
 /**
  * Invariants:
  *   1. First item is located at nextFirst + 1
  *   2. Last item is located at nextLast - 1
  *   3. Items will be continuous from the first item to the last item (no empty block between them)
  */
-public class ArrayDeque<T> implements Deque<T> {
+public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
     private int size;
     private T[] items;
     private int nextFirst;
@@ -158,6 +160,52 @@ public class ArrayDeque<T> implements Deque<T> {
             return items[index - itemsCountToEnd];
         }
     };
+
+    private class ArrayDequeIterator<T> implements Iterator<T> {
+        private ArrayDeque<T> deque;
+        private int index;
+        public ArrayDequeIterator(ArrayDeque deque) {
+            this.deque = deque;
+            this.index = 0;
+        }
+
+        @Override
+        public boolean hasNext() {
+           return index < deque.size();
+        }
+
+       @Override
+       public T next() {
+            T nextItem = deque.get(index);
+            index += 1;
+            return nextItem;
+       }
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return new ArrayDequeIterator<T>(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof Deque)) {
+            return false;
+        }
+        Deque d = (Deque) o;
+        if (d.size() != this.size) {
+            return false;
+        }
+        for (int i = 0; i < size; i++) {
+            if (!get(i).equals(d.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     public double memoryUsage() {
         return size / (double)items.length;

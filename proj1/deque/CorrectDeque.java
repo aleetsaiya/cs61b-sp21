@@ -1,17 +1,17 @@
 package deque;
 
-public class CorrectDeque<T> implements Deque<T>{
+public class CorrectDeque<T> implements Deque<T> {
     private T[] items;
     private int size;
     private final int CAPACITY = 100000;
 
     public CorrectDeque() {
-        items = (T[])new Object[CAPACITY];
+        items = (T[]) new Object[CAPACITY];
     }
 
     public void addFirst(T item) {
         for (int i = size - 1; i >= 0; i--) {
-            items[i+1] = items[i];
+            items[i + 1] = items[i];
         }
         items[0] = item;
         size += 1;
@@ -43,8 +43,8 @@ public class CorrectDeque<T> implements Deque<T>{
             return null;
         }
         T res = items[0];
-        for(int i = 1; i < size; i++) {
-            items[i-1] = items[i];
+        for (int i = 1; i < size; i++) {
+            items[i - 1] = items[i];
         }
         size -= 1;
         return res;

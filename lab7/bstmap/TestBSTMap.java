@@ -6,6 +6,16 @@ import org.junit.Test;
 /** Tests by Brendan Hu, Spring 2015, revised for 2016 by Josh Hug */
 public class TestBSTMap {
 
+//    @Test
+//    public void insertTest() {
+//        BSTMap<Integer, Integer> map = new BSTMap<>();
+//        map.put(3, 3);
+//        map.put(1, 1);
+//        map.put(2, 2);
+//        map.put(4, 4);
+//        map.printInOrder();
+//    }
+
   	@Test
     public void sanityGenericsTest() {
     	try {

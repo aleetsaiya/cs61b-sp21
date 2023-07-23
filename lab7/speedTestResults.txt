@@ -1,0 +1,20 @@
+
+Not in-order data
+----------------------
+Please enter desired length of each string: 10
+Enter # strings to insert into the maps: 60000
+
+class bstmap.ULLMap: 10.79 sec
+class bstmap.BSTMap: 0.03 sec
+Java's Built-in TreeMap: 0.02 sec
+Java's Built-in HashMap: 0.01 sec
+
+
+
+In-order data
+----------------------
+Enter # strings to insert into the maps: 50000
+class bstmap.ULLMap: 18.85 sec
+class bstmap.BSTMap: 11.11 sec
+Java's Built-in TreeMap: 0.03 sec
+Java's Built-in HashMap: 0.02 sec

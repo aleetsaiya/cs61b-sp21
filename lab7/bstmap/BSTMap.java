@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
 
-public class BSTMap<K extends Comparable, V> implements Map61B<K, V>{
+public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V>{
     private BSTNode root;
     private int size = 0;
 
@@ -27,6 +27,10 @@ public class BSTMap<K extends Comparable, V> implements Map61B<K, V>{
 
         public V getValue() {
             return value;
+        }
+
+        public void setValue(V value) {
+            this.value = value;
         }
 
         public void setLeftChild() {
@@ -107,34 +111,19 @@ public class BSTMap<K extends Comparable, V> implements Map61B<K, V>{
         return size;
     }
 
-    private void put (BSTNode root, BSTNode target) {
-        if (root.compareTo(target) > 0) {
-            if (root.left == null) {
-                root.left = target;
-                return;
-            }
-            put(root.left, target);
-        }
-        else if (root.compareTo(target) < 0) {
-            if (root.right == null) {
-                root.right = target;
-                return;
-            }
-            put(root.right, target);
-        }
-        else {
-            throw new Error("Could not put the same item " + target);
-        }
+    private BSTNode put (BSTNode n, BSTNode target) {
+        if (n == null)  return target;
+        int cmp = target.compareTo(n);
+        if (cmp > 0)   n.right = put(n.right, target);
+        else if (cmp < 0)   n.left = put(n.left, target);
+        else n.setValue(target.getValue());
+        return n;
     }
 
     @Override
     public void put(K key, V value) {
-        if (root == null) {
-            root = new BSTNode(key, value);
-        }
-        else {
-            put(root, new BSTNode(key, value));
-        }
+        if (key == null) throw new IllegalArgumentException("calls put() with a null key");
+        root = put(root, new BSTNode(key, value));
         size += 1;
     }
 

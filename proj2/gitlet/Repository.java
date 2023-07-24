@@ -1,7 +1,8 @@
 package gitlet;
 
 import java.io.File;
-import static gitlet.Utils.*;
+import java.io.IOException;
+import java.io.Serializable;
 
 // TODO: any imports you need here
 
@@ -9,7 +10,7 @@ import static gitlet.Utils.*;
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- *  @author TODO
+ *  @author Sean Tsai
  */
 public class Repository {
     /**
@@ -23,7 +24,23 @@ public class Repository {
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
-    public static final File GITLET_DIR = join(CWD, ".gitlet");
+    public static final File GITLET_DIR = Utils.join(CWD, ".gitlet");
 
-    /* TODO: fill in the rest of this class. */
+    /** Return a file from storage */
+    public static File getObject(String name) {
+        return Utils.join(GITLET_DIR, name.substring(0, 2), name.substring(2));
+    }
+
+    /** Save an object to storage as the given file name */
+    public static void saveObject(String name, Serializable o) {
+        File f = getObject(name);
+        try {
+            if (f.createNewFile()) {
+                Utils.writeObject(f, o);
+            }
+        }
+        catch (IOException e) {
+            System.out.println("Failed to create file into storage");
+        }
+    }
 }

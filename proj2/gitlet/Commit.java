@@ -1,14 +1,11 @@
 package gitlet;
 
-import org.antlr.v4.runtime.tree.Tree;
-
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -35,54 +32,47 @@ public class Commit implements Serializable {
     /** e.g {"wug1.txt":  } */
     private Map<String, File> map;
 
-    /**
-     * 1. Get the current un-encoding file
-     * File currentFile = new File([currentFolder], "currentFile.java");
-     *
-     * 2. Using sha1 hash to hash the whole file to get the name
-     * String hashedName = Utils.sha1(currentFile);
-     *
-     * 3. Create a new file to store the current file but the encoded version
-     * File targetFile = new File(".getlet", "objects", hashedName);
-     * Utils.writeObject(targetFile, currentFile);
-     * targetFile.createNewFile();
-     *
-     * 4. Store the encoded file reference to the map
-     * map["currentFile.java"] = targetFile;
-     */
-
-    /**
-     *
-     * @param message the commit message
-     * @param parent1 the parent commit to this commit
-     */
-    Commit(String message, Commit parent1) {
+    Commit(String message, Commit parent) {
         this.message = message;
         this.date = new Date();
-        this.parent1 = parent1;
+        this.parent1 = parent;
         map = new TreeMap<>(parent1.getFilesMap());
     }
 
-    /** Get commit from the storage folder by then given commit hash */
-    public static Commit fromFile(String hash) {
+    Commit(String message, Commit parent1, Commit parent2) {
+        this.message = message;
+        this.date = new Date();
+        this.parent1 = parent1;
+        this.parent2 = parent2;
+        // TODO: How to handle the files map?
+    }
+
+    Commit(String message, Commit parent, Date date) {
+        this.message = message;
+        this.parent1 = parent;
+        this.date = date;
+        // TODO: How to handle the file map?
+    }
+
+    String hash() {
+        return sha1(serialize(this));
+    }
+
+    /** Get commit information from the storage folder by the given commit hash */
+    static Commit fromFile(String hash) {
         File COMMIT_FILE = Repository.getObject(hash);
-        return Utils.readObject(COMMIT_FILE, Commit.class);
+        return readObject(COMMIT_FILE, Commit.class);
     }
 
     /** Save the commit into storage folder */
-    public void saveCommit() {
-        Repository.saveObject(Utils.sha1(this), this);
+    void saveCommit() {
+        Repository.saveObject(hash(), this);
     }
 
-    public Map<String, File> getFilesMap() {
+    Map<String, File> getFilesMap() {
         return map;
     }
 
 
-// TODO: Complete to toString() method
-
-//    @Override
-//    public String toString() {
-//        return String.format("commit %s\n Date: %s\n %s\n", )
-//    }
+    // TODO: Complete to toString() method
 }

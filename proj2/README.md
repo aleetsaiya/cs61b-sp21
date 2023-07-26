@@ -28,7 +28,8 @@ Below is the overall structure of the `.getlet` folder:
 Initialize the `.gitlet` folder to the current folder
 1. Create `.gitlet` folder
 2. Create the following folder and files `refs/heads/master`, `objects`, `HEAD`, `index`
-3. Initialize the content for  `refs/heads/master` and `HEAD` (HEAD will point to the master branch as default)
+3. Create the initial commit, which do not contain files and with the commit message "initial commit"
+4. Initialize the content for  `refs/heads/master` and `HEAD` (HEAD will point to the initial commit)
 
 ### `add`
 Add a specific file (can only a file per time) into staging area.
@@ -44,13 +45,13 @@ Snapshot the current folder state, give the snapshot a brief message and store t
 5. Write this COMMIT into `.gitlet/objects`
 6. SET the `.gitlet/HEAD` to the current COMMIT
 
-### 
+### `status`
+Print out the current branch, staged files, removed files, modification and untracked files.
+1. See the HEAD pointer reference inside the `HEAD` to get the current branch
+2. When call the `status` script, iterate every files in the `.gitlet` to check each file current status
 
-
-
-
-
-
+### How to store the staging area information inside index
+reference: [Understanding Git — Index](https://konrad126.medium.com/understanding-git-index-4821a0765cf)
 
 
 

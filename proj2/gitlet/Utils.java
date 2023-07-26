@@ -221,6 +221,15 @@ class Utils {
     }
 
 
+    /** Create a new file if the file is not exist yet */
+    static void createFile(File f) {
+        try {
+           f.createNewFile();
+        } catch (IOException e) {
+            System.out.println("Failed to create new file");
+        }
+    }
+
 
     /* MESSAGES AND ERROR REPORTING */
 

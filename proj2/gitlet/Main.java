@@ -1,6 +1,5 @@
 package gitlet;
 
-import java.util.Date;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author Sean Tsai
@@ -16,24 +15,42 @@ public class Main {
             System.out.println("no args");
             System.exit(0);
         }
+
+        // TODO: Remove the temporary print out
         System.out.print("args: ");
         for (int i = 0; i < args.length; i++) {
             System.out.print(args[i] + " ");
         }
         System.out.println();
-        String firstArg = args[0];
-        switch(firstArg) {
+
+        String option = args[0];
+        switch(option) {
             case "init":
                 Repository.setupPersistence();
-                // Create the first commit to repository
-                Commit firstCommit =  new Commit("initial commit", null, new Date(0));
-                Repository.add(firstCommit);
-                Repository.commit(firstCommit);
+                Repository.pushFirstCommit();
                 break;
             case "add":
-                // TODO: handle the `add [filename]` command
+                if (args.length != 2) {
+                    // TODO: any specific error message?
+                    System.out.println("Should have at least two arguments");
+                    System.exit(1);
+                }
+                String fileName = args[1];
+                Repository.add(fileName);
                 break;
-            // TODO: FILL THE REST IN
+            case "commit":
+                if (args.length != 2) {
+                    // TODO: any specific error message?
+                    System.out.println("Should have at least two arguments");
+                    System.exit(1);
+                }
+                String msg = args[1];
+                Commit c = new Commit(msg, Repository.getHeadCommit());
+                Repository.commit(c);
+                break;
+            case "status":
+                Repository.status();
+                break;
         }
     }
 }

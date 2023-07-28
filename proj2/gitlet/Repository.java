@@ -3,6 +3,8 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 import java.util.*;
+
+import static gitlet.RepositoryHelper.printStatus;
 import static gitlet.Utils.*;
 import static gitlet.RepositoryHelper.createFile;
 
@@ -49,85 +51,71 @@ public class Repository {
 
     // TODO: complete status to make debug easier
     static void status() {
-        // Arrays to store status information
+        // Arrays to store each status information
         ArrayList<String> unstagedFiles = new ArrayList<>();
         ArrayList<String> stagedFiles = new ArrayList<>();
         ArrayList<String> modifyFiles = new ArrayList<>();
+        ArrayList<String> removedFiles = new ArrayList<>();
 
         TreeMap<String, String> wd = getWorkingDirectoryState();
         TreeMap<String, String> stag = getStagingState();
         TreeMap<String, String> repos = getRepositoryState();
 
-        for (String fileName : wd.keySet()) {
-            String hash = wd.get(fileName);
+        Set<String> fs = new HashSet<>();
+        fs.addAll(wd.keySet());
+        fs.addAll(stag.keySet());
+        fs.addAll(repos.keySet());
+
+        for (String fileName : fs) {
             boolean inRepos = repos.containsKey(fileName);
             boolean inStag = stag.containsKey(fileName);
-            // Untracked files (in WD, but not in Stage nor Repos) (ok)
-            if (!inStag && !inRepos) unstagedFiles.add(fileName);
-            else if (inStag && !inRepos) {
-                // Staged files (in WD and Stage, but not in Repos, Wd and Stage value should be same) (ok)
-                if (stag.get(fileName).equals(hash)) stagedFiles.add(fileName);
-                // Modification not staged (Staged for addition, but with different content compare to the WD) (ok)
-                else modifyFiles.add(fileName + " (modified)");
+            boolean inWd = wd.containsKey(fileName);
+            if (inWd) {
+                // Untracked files (in WD, but not in Stage nor Repos)
+                if (!inStag && !inRepos) unstagedFiles.add(fileName);
+                else if (inStag && !inRepos) {
+                    // Staged files (in WD and Stage, but not in Repos, Wd and Stage value should be same)
+                    if (stag.get(fileName).equals(wd.get(fileName))) stagedFiles.add(fileName);
+                        // Modification not staged (Staged for addition, but with different content compare to the WD)
+                    else modifyFiles.add(fileName + " (modified)");
+                }
+                else if (inStag && inRepos) {
+                    // Tracked in the current commit, changed in the working directory, but not staged
+                    if (!stag.get(fileName).equals(wd.get(fileName)))
+                        modifyFiles.add(fileName + " (modified)");
+                        // Tracked in the current commit, changed in the working directory, and have staged
+                    else if (!repos.get(fileName).equals(wd.get(fileName)))
+                        stagedFiles.add(fileName);
+                }
             }
-            else if (inStag && inRepos) {
-                // Tracked in the current commit, changed in the working directory, but not staged (ok)
-                if (!stag.get(fileName).equals(hash))
-                    modifyFiles.add(fileName + " (modified)");
-                // Tracked in the current commit, changed in the working directory, and have staged (ok)
-                else if (!repos.get(fileName).equals(hash))
-                    stagedFiles.add(fileName);
+            // To handle remove file in working directory
+            else {
+                // not yet staged the remove file
+                if (inStag) {
+                    // Modification not staged (Staged for addition, but deleted in the working directory) -> in stag, not in wd
+                    // Modification not staged (Not staged for removal, but tracked in the current commit and deleted from the working directory) -> in repos, not in stag and not in wd
+                    modifyFiles.add(fileName + " (delete)");
+                }
+                // have staged the remove file
+                else if (inRepos) {
+                    // Removed files -> not in wd, not in stag and in repos
+                    removedFiles.add(fileName);
+                }
             }
         }
-
-        // Print out all the information
-        // Branches
-        String currentBranch = getCurrentBranch();
-        File[] allBranches = join(GITLET_DIR, "refs", "heads").listFiles();
-        System.out.println("=== Branches ===");
-        for (File branch : allBranches) {
-            if (branch.getName().equals(currentBranch)) {
-                System.out.print("*");
-            }
-            System.out.println(branch.getName());
-        }
-        System.out.println();
-        System.out.println("=== Staged Files ===");
-        for (String f : stagedFiles) {
-            System.out.println(f);
-        }
-        System.out.println();
-        System.out.println("=== Removed Files ===");
-        // TODO:
-        System.out.println();
-        System.out.println("=== Modifications Not Staged For Commit ===");
-        for (String f : modifyFiles) {
-            System.out.println(f);
-        }
-        System.out.println();
-        System.out.println("=== Untracked Files ===");
-        for (String f : unstagedFiles) {
-            System.out.println(f);
-        }
-        System.out.println();
-        // TODO
-        // Modification not staged (Not staged for removal -> not in WD but in Stag, but tracked in the current commit and deleted from the working directory)
-        // Modification not staged (Staged for addition, but deleted in the working directory)
-        // Removed files (not in WD and Stage but in Repos, WD and Stage should both not contain the file)
-
-        // TODO: check if there are any cases that I didn't notice
+        RepositoryHelper.printStatus(stagedFiles, removedFiles, modifyFiles, unstagedFiles);
     }
 
     static void add(String fileName) {
         // Update staging area state
         TreeMap<String, String> stg = getStagingState();
         File f = join(CWD, fileName);
-        // Handle delete a tracked file
+        // Handle remove a staged file
         if (!f.exists()) {
             if (stg.containsKey(fileName))
                 stg.remove(fileName);
             else {
-                System.out.println("File does not exist.");
+                System.out.println("Already staged the remove file");
                 // TODO: Return or System.exit()?
                 return;
             }

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 
+import static gitlet.RepositoryHelper.hashFile;
 import static gitlet.Utils.*;
 import static gitlet.RepositoryHelper.createFile;
 
@@ -31,20 +32,12 @@ public class Repository {
         join(GITLET_DIR, "objects").mkdir();
         join(GITLET_DIR, "refs").mkdir();
         join(GITLET_DIR, "refs", "heads").mkdir();
-        // Create index as an empty TreeMap
+        // Create the index file to store the state of staging area
         File INDEX = join(GITLET_DIR, "index");
-        writeObject(INDEX, new TreeMap<String, String>());
-        createFile(INDEX);
         // Create HEAD, The HEAD will point to the default branch "master"
         File HEAD = join(GITLET_DIR, "HEAD");
         createFile(HEAD);
         writeContents(HEAD, "refs/heads/master");
-    }
-
-    static void pushFirstCommit() {
-        Commit firstCommit =  new Commit("initial commit");
-        firstCommit.setDate(new Date(0));
-        commit(firstCommit);
     }
 
     static void status() {
@@ -68,56 +61,48 @@ public class Repository {
             boolean inStag = stag.containsKey(fileName);
             boolean inWd = wd.containsKey(fileName);
             if (inWd) {
-                // Untracked files (in WD, but not in Stage nor Repos)
+                // Untracked files (in WD, but not in Stage nor Repos) (ok)
                 if (!inStag && !inRepos) unstagedFiles.add(fileName);
                 else if (inStag && !inRepos) {
-                    // Staged files (in WD and Stage, but not in Repos, Wd and Stage value should be same)
+                    // Staged files (in WD and Stage, but not in Repos, Wd and Stage value should be same) (ok)
                     if (stag.get(fileName).equals(wd.get(fileName))) stagedFiles.add(fileName);
-                        // Modification not staged (Staged for addition, but with different content compare to the WD)
+                    // Modification not staged (Staged for addition, but with different content compare to the WD) (ok)
                     else modifyFiles.add(fileName + " (modified)");
                 }
-                else if (inStag && inRepos) {
-                    // Tracked in the current commit, changed in the working directory, but not staged
-                    if (!stag.get(fileName).equals(wd.get(fileName)))
-                        modifyFiles.add(fileName + " (modified)");
-                        // Tracked in the current commit, changed in the working directory, and have staged
-                    else if (!repos.get(fileName).equals(wd.get(fileName)))
-                        stagedFiles.add(fileName);
-                }
+                // Tracked in the current commit, changed in the working directory, but not staged
+                else if (!inStag && inRepos) modifyFiles.add(fileName + " (modified)");
+                // Tracked in the current commit, changed in the working directory, and have staged
+                else if (inStag && inRepos && !stag.get(fileName).equals(repos.get(fileName))) stagedFiles.add(fileName);
             }
             // To handle remove file in working directory
             else {
-                // not yet staged the remove file
-                if (inStag) {
-                    // Modification not staged (Staged for addition, but deleted in the working directory) -> in stag, not in wd
-                    // Modification not staged (Not staged for removal, but tracked in the current commit and deleted from the working directory) -> in repos, not in stag and not in wd
-                    modifyFiles.add(fileName + " (delete)");
-                }
-                // have staged the remove file
-                else if (inRepos) {
-                    // Removed files -> not in wd, not in stag and in repos
-                    removedFiles.add(fileName);
-                }
+                String stagValue = stag.get(fileName);
+                // Modification not staged (Staged for addition, but deleted in the working directory)
+                // Modification not staged (Not staged for removal, but tracked in the current commit and deleted from the working directory)
+                if ((inStag && !stagValue.equals("DELETE")) || (!inStag && inRepos)) modifyFiles.add(fileName + " (delete)");
+                // Removed files (Have staged the deleted file, but still tracked in the current commit)
+                else if (inStag && stagValue.equals("DELETE")) removedFiles.add(fileName);
             }
         }
-        RepositoryHelper.printStatus(stagedFiles, removedFiles, modifyFiles, unstagedFiles);
+        RepositoryHelper.printStatus(unstagedFiles, stagedFiles, modifyFiles, removedFiles);
     }
 
     static void add(String fileName) {
         // Update staging area state
         TreeMap<String, String> stg = getStagingState();
+        TreeMap<String, String> repos = getRepositoryState();
         File f = join(CWD, fileName);
-        // Handle remove a staged file
+        boolean inStg = stg.containsKey(fileName);
+        boolean inRepos = repos.containsKey(fileName);
+        // Handle stage a removed file
         if (!f.exists()) {
-            if (stg.containsKey(fileName))
-                stg.remove(fileName);
-            else {
-                System.out.println("File does not exist.");
-                // TODO: Return or System.exit()?
-                return;
-            }
+            // Modification not staged (Staged for addition, but deleted in the working directory)
+            if (inStg && !inRepos) stg.remove(fileName);
+            // Modification not staged (Not staged for removal, but tracked in the current commit and deleted from the working directory)
+            // (inStg && inRepos) is also the category of "Staged for addition, but deleted in the working directory"
+            else if ((inStg && inRepos) || (!inStg && inRepos)) stg.put(fileName, "DELETE");
         }
-        // Handle add a new file or modify a tracked file
+        // Handle add a new file or modify a tracked file to staging area
         else {
             String hash = RepositoryHelper.hashFile(f, String.class);
             TreeMap<String, String> repositoryState = getRepositoryState();
@@ -132,10 +117,17 @@ public class Repository {
         writeStagingState(stg);
     }
 
-    /** Push a new commit into current brnach */
+    /** Push a new commit into current branch */
     static void commit(Commit c) {
         // Update the commit file map to the current staging state
-        c.setMap(getStagingState());
+        TreeMap<String, String> stag = getStagingState();
+        TreeMap<String, String> repos = getRepositoryState();
+        for (String fileName : stag.keySet()) {
+            String hash = stag.get(fileName);
+            if (hash.equals("DELETE")) repos.remove(fileName);
+            else repos.put(fileName, hash);
+        }
+        c.setMap(repos);
         // Save this commit to storage
         c.saveCommit();
         // Get the current branch
@@ -143,8 +135,23 @@ public class Repository {
         createFile(BRANCH_FILE);
         // Update the branch HEAD to the newest commit
         writeContents(BRANCH_FILE, RepositoryHelper.hashObject(c));
-        // Update index to the newest file map
-        writeStagingState(c.getFilesMap());
+        // Clear the staging state
+        writeStagingState(new TreeMap());
+    }
+
+    static void addFirstCommit() {
+        Commit c =  new Commit("initial commit");
+        c.setDate(new Date(0));
+        c.setMap(new TreeMap<String, String>());
+        // Save this commit to storage
+        c.saveCommit();
+        // Get the current branch
+        File BRANCH_FILE = join(GITLET_DIR, "refs", "heads", getCurrentBranch());
+        createFile(BRANCH_FILE);
+        // Update the branch HEAD to the newest commit
+        writeContents(BRANCH_FILE, RepositoryHelper.hashObject(c));
+        // Clear the staging state
+        writeStagingState(new TreeMap());
     }
 
     /** Unstage a file if the file is in staging area, or remove a file if the file is not in staging area but tracked in current commit */
@@ -169,6 +176,86 @@ public class Repository {
             f.delete();
             stag.remove(fileName);
             writeStagingState(stag);
+        }
+    }
+
+    static void branch(String branchName) {
+        File BRANCH_FOLDER = join(GITLET_DIR, "refs", "heads");
+        File NEW_BRANCH = join(BRANCH_FOLDER, branchName);
+        if (NEW_BRANCH.exists()) {
+            System.out.println("A branch with that name already exists.");
+            return;
+        }
+        // Create a new branch file in refs/heads/{branchName} with the content of the current HEAD commit reference
+        File CURRENT_BRANCH = join(BRANCH_FOLDER, getCurrentBranch());
+        createFile(NEW_BRANCH);
+        writeContents(NEW_BRANCH, readContentsAsString(CURRENT_BRANCH));
+    }
+
+    static enum CheckoutOptions {
+        FILE,
+        COMMIT,
+        BRANCH
+    }
+
+    /** Return whether the given file will overwrite the current working directory file */
+    static private boolean willOverwriteUntrackedFiles(String fileName, String hash) {
+        File f = join(CWD, fileName);
+        if (!f.exists()) return false;
+        String wdHash = hashFile(f, String.class);
+        return !wdHash.equals(hash);
+    }
+
+    /** Return whether the given commit will overwrite the current working directory files */
+    static private boolean willOverwriteUntrackedFiles(Commit c) {
+        TreeMap<String, String> wd = getWorkingDirectoryState();
+        TreeMap<String, String> m = c.getFilesMap();
+        for (String fileName : m.keySet()) {
+            if (wd.containsKey(fileName) && !wd.get(fileName).equals(m.get(fileName)))
+                return true;
+        }
+        return false;
+    }
+
+    // TODO: Complete checkout
+    static void checkout(CheckoutOptions option, String... vals) {
+        // Checkout a file to the HEAD commit version
+        if (option.equals(CheckoutOptions.FILE)) {
+            String fileName = vals[0];
+            // Error Handling
+            TreeMap<String, String> repos = getRepositoryState();
+            if (vals.length != 1) {
+                System.out.println("Should have only one argument");
+                return;
+            }
+            if (!repos.containsKey(fileName)) {
+                System.out.println("File does not exist in that commit");
+                return;
+            }
+            if (willOverwriteUntrackedFiles(fileName, repos.get(fileName))) {
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                return;
+            }
+            // Update the WD file to the HEAD commit version
+            File HEAD_VERSION = getObject(repos.get(fileName));
+            File f = join(CWD, fileName);
+            createFile(f);
+            writeContents(f, readContentsAsString(HEAD_VERSION));
+        }
+        // Checkout a file to a specific commit
+        else if (option.equals(CheckoutOptions.COMMIT)) {
+            if (vals.length != 2)
+                throw new IllegalArgumentException("Should have only two arguments");
+
+        }
+        // Checkout to a specific branch
+        else if (option.equals(CheckoutOptions.BRANCH)) {
+            if (vals.length != 1)
+                throw new IllegalArgumentException("Should have only one arguments");
+        }
+        else {
+            System.out.println("Invalid checkout option");
+            System.exit(1);
         }
     }
 
@@ -199,7 +286,7 @@ public class Repository {
     }
 
     /** Return the current working directory state */
-    static TreeMap<String, String> getWorkingDirectoryState() {
+    private static TreeMap<String, String> getWorkingDirectoryState() {
         TreeMap<String, String> map = new TreeMap();
         File[] files = join(CWD).listFiles();
         for (File f : files) {
@@ -211,13 +298,13 @@ public class Repository {
     }
 
     /** Return the current staging area state */
-    static TreeMap<String, String> getStagingState() {
+    private static TreeMap<String, String> getStagingState() {
         File INDEX = join(GITLET_DIR, "index");
         return readObject(INDEX, TreeMap.class);
     }
 
     /** Update staging area state */
-    static void writeStagingState(Serializable object) {
+    private static void writeStagingState(Serializable object) {
         if (object == null) {
             return;
         }
@@ -229,11 +316,10 @@ public class Repository {
     }
 
     /** Return the current state for the HEAD commit */
-    static TreeMap<String, String> getRepositoryState() {
+    private static TreeMap<String, String> getRepositoryState() {
         Commit head = getHeadCommit();
         return head.getFilesMap();
     }
-
 
     /** Return a file from storage by the given hash name */
     static File getObject(String hash) {

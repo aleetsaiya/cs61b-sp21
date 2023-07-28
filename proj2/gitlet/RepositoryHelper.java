@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static gitlet.Utils.*;
 
@@ -18,10 +19,11 @@ public class RepositoryHelper {
     }
 
     /** Print out the current gitlet status with a prettier format */
-    static void printStatus(List<String> stagedFiles, List<String> removedFiles, List<String> modifyFiles, List<String> unstagedFiles) {
+    static void printStatus(List<String> unstagedFiles, List<String> stagedFiles, List<String> modifiedFiles, List<String> removedFiles) {
         // Branches
         String currentBranch = Repository.getCurrentBranch();
         File[] allBranches = join(Repository.GITLET_DIR, "refs", "heads").listFiles();
+        //TODO: current branch should always at the top?
         System.out.println("=== Branches ===");
         for (File branch : allBranches) {
             if (branch.getName().equals(currentBranch)) {
@@ -42,7 +44,7 @@ public class RepositoryHelper {
         }
         System.out.println();
         System.out.println("=== Modifications Not Staged For Commit ===");
-        for (String f : modifyFiles) {
+        for (String f : modifiedFiles) {
             System.out.println(f);
         }
         System.out.println();

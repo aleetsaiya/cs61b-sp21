@@ -27,7 +27,7 @@ public class Main {
         switch(option) {
             case "init":
                 Repository.setupPersistence();
-                Repository.pushFirstCommit();
+                Repository.addFirstCommit();
                 break;
             case "add":
                 if (args.length != 2) {
@@ -60,6 +60,13 @@ public class Main {
                     System.exit(1);
                 }
                 Repository.rm(args[1]);
+                break;
+            case "branch":
+                if (args.length != 2) {
+                    System.out.println("Should at least two arguments");
+                    System.exit(1);
+                }
+                Repository.branch(args[1]);
                 break;
         }
     }

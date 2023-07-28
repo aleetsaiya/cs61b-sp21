@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 
-import static gitlet.RepositoryHelper.printStatus;
 import static gitlet.Utils.*;
 import static gitlet.RepositoryHelper.createFile;
 
@@ -48,8 +47,6 @@ public class Repository {
         commit(firstCommit);
     }
 
-
-    // TODO: complete status to make debug easier
     static void status() {
         // Arrays to store each status information
         ArrayList<String> unstagedFiles = new ArrayList<>();
@@ -115,7 +112,7 @@ public class Repository {
             if (stg.containsKey(fileName))
                 stg.remove(fileName);
             else {
-                System.out.println("Already staged the remove file");
+                System.out.println("File does not exist.");
                 // TODO: Return or System.exit()?
                 return;
             }
@@ -148,6 +145,45 @@ public class Repository {
         writeContents(BRANCH_FILE, RepositoryHelper.hashObject(c));
         // Update index to the newest file map
         writeStagingState(c.getFilesMap());
+    }
+
+    /** Unstage a file if the file is in staging area, or remove a file if the file is not in staging area but tracked in current commit */
+    static void rm(String fileName) {
+        File f = join(CWD, fileName);
+        String hash = RepositoryHelper.hashFile(f, String.class);
+        TreeMap<String, String> stag = getStagingState();
+        TreeMap<String, String> repos = getRepositoryState();
+        boolean inStag = stag.containsKey(fileName);
+        boolean inRepos = repos.containsKey(fileName);
+        System.out.println("staging: " + inStag);
+        System.out.println("inRepos: " + inRepos);
+        // Unstage the file if the file have staged for addition
+        if (inStag && hash.equals(stag.get(fileName)) && !hash.equals(repos.get(fileName))) {
+            System.out.println("First");
+            stag.remove(fileName);
+            writeStagingState(stag);
+        }
+        // Remove the file if the file haven't staged but tracked in current commit
+        else if (inStag && inRepos){
+            System.out.println("Second");
+            f.delete();
+            stag.remove(fileName);
+            writeStagingState(stag);
+        }
+    }
+
+    /** Display each commit backward along the commit tree until the initial commit */
+    static void log() {
+        // TODO: how to handle merge? when the commit have two parents
+        Commit HEAD = getHeadCommit();
+        Commit p = HEAD;
+        while (p != null) {
+            System.out.println("===");
+            System.out.println("Date: " + p.getDate());
+            System.out.println(p.getMessage());
+            System.out.println();
+            p = p.getParentCommit();
+        }
     }
 
     /** Return the HEAD commit */

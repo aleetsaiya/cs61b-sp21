@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.TreeMap;
+import java.util.Locale;
+import java.text.SimpleDateFormat;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
@@ -51,12 +53,30 @@ public class Commit implements Serializable {
         // TODO: How to handle the files map?
     }
 
+    String getMessage() {
+        return message;
+    }
+
+    Commit getParentCommit() {
+        if (parent1 == null) {
+           return null;
+        }
+        return Commit.fromFile(parent1);
+    }
+
     void setMap(TreeMap<String, String> map) {
         this.map = map;
     }
 
     void setDate(Date date) {
         this.date = date;
+    }
+
+    String getDate() {
+        // Should format the Date object to this date output pattern: "Wed Dec 31 16:00:00 1969 -0800"
+        String pattern = "EEE MMM d HH:mm:ss yyyy Z";
+        SimpleDateFormat formatter = new SimpleDateFormat(pattern, Locale.ENGLISH);
+        return formatter.format(date);
     }
 
     /** Get commit information from the storage folder by the given commit hash */

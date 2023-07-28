@@ -35,8 +35,7 @@ public class Main {
                     System.out.println("Should have at least two arguments");
                     System.exit(1);
                 }
-                String fileName = args[1];
-                Repository.add(fileName);
+                Repository.add(args[1]);
                 break;
             case "commit":
                 if (args.length != 2) {
@@ -50,6 +49,17 @@ public class Main {
                 break;
             case "status":
                 Repository.status();
+                break;
+            case "log":
+                Repository.log();
+                break;
+            case "rm":
+                if (args.length != 2) {
+                    // TODO: any specific error message?
+                    System.out.println("Should at least two arguments");
+                    System.exit(1);
+                }
+                Repository.rm(args[1]);
                 break;
         }
     }

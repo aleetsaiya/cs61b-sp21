@@ -23,6 +23,7 @@ public class Repository {
     /** The .gitlet directory. */
     static final File GITLET_DIR = Utils.join(CWD, ".gitlet");
 
+    /** Set up the gitlet folder structure and create necessary file to initialize the gitlet */
     static void setupPersistence() {
         // Create the necessary folders
         if (GITLET_DIR.exists()) {
@@ -41,6 +42,7 @@ public class Repository {
         writeContents(HEAD, "refs/heads/master");
     }
 
+    /** Show up the current gitlet status including branch and staged, untracked, modified, removed file */
     static void status() {
         // Arrays to store each status information
         ArrayList<String> unstagedFiles = new ArrayList<>();
@@ -88,6 +90,7 @@ public class Repository {
         RepositoryHelper.printStatus(unstagedFiles, stagedFiles, modifyFiles, removedFiles);
     }
 
+    /** Add a single file to staging area */
     static void add(String fileName) {
         // Update staging area state
         TreeMap<String, String> stg = getStagingState();
@@ -144,6 +147,7 @@ public class Repository {
         writeStagingState(new TreeMap());
     }
 
+    /** Add the first commit to initialize the gitlet commit */
     static void addFirstCommit() {
         Commit c =  new Commit("initial commit");
         c.setDate(new Date(0));
@@ -184,6 +188,7 @@ public class Repository {
         }
     }
 
+    /** Create a new branch */
     static void branch(String branchName) {
         File BRANCH_FOLDER = join(GITLET_DIR, "refs", "heads");
         File NEW_BRANCH = join(BRANCH_FOLDER, branchName);
@@ -197,12 +202,14 @@ public class Repository {
         writeContents(NEW_BRANCH, readContentsAsString(CURRENT_BRANCH));
     }
 
+    /** List all the operations that checkout could implement */
     enum CheckoutOptions {
         FILE,
         COMMIT,
         BRANCH
     }
 
+    /** Change the current branch to another, or change the current file version to HEAD or specific commit version */
     static void checkout(CheckoutOptions option, String... vals) {
         // Checkout a file to the HEAD commit version
         if (option.equals(CheckoutOptions.FILE)) {

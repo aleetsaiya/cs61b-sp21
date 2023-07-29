@@ -23,7 +23,7 @@ public class Main {
                 break;
             case "add":
                 if (args.length == 2) Repository.add(args[1]);
-                else System.out.println("Should have onlyj two arguments");
+                else System.out.println("Should have only two arguments");
                 break;
             case "commit":
                 if (args.length == 2) Repository.commit(new Commit(args[1], Repository.getHeadCommit()));
@@ -35,19 +35,34 @@ public class Main {
             case "log":
                 Repository.log();
                 break;
+            case "global-log":
+                Repository.globalLog();
+                break;
+            case "find":
+                if (args.length == 2) Repository.find(args[1]);
+                else System.out.println("Should have only two arguments");
+                break;
             case "rm":
                 if (args.length == 2) Repository.rm(args[1]);
-                else System.out.println("Should at only two arguments");
+                else System.out.println("Should have only two arguments");
                 break;
             case "branch":
                 if (args.length == 2) Repository.branch(args[1]);
-                else System.out.println("Should at only two arguments");
+                else System.out.println("Should have only two arguments");
+                break;
+            case "rm-branch":
+                if (args.length == 2) Repository.removeBranch(args[1]);
+                else System.out.println("Should have only two arguments");
                 break;
             case "checkout":
                 if (args.length == 2) Repository.checkout(CheckoutOptions.BRANCH, args[1]);
                 else if (args.length == 3) Repository.checkout(CheckoutOptions.FILE, args[2]);
                 else if (args.length == 4) Repository.checkout(CheckoutOptions.COMMIT, args[1], args[3]);
                 else System.out.println("Check the checkout usage to use this script");
+                break;
+            case "reset":
+                if (args.length == 2) Repository.reset(args[1]);
+                else System.out.println("Should have only two arguments");
                 break;
         }
     }

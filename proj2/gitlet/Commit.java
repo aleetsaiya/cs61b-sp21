@@ -103,6 +103,18 @@ public class Commit implements Serializable {
         return map;
     }
 
+    @Override
+    public boolean equals( Object o) {
+        if (o == this) return true;
+        if (!(o instanceof Commit)) return false;
+        Commit c = (Commit) o;
+        if (RepositoryHelper.hashObject(c).equals(RepositoryHelper.hashObject(this))) return true;
+        return false;
+    }
 
+    @Override
+    public int hashCode() {
+        return (int)date.getTime() + message.length();
+    }
     // TODO: Complete to toString() method
 }

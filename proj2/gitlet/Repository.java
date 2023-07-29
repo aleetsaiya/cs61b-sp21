@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 
-import static gitlet.RepositoryHelper.hashFile;
+import static gitlet.RepositoryHelper.hashObject;
 import static gitlet.Utils.*;
 import static gitlet.RepositoryHelper.createFile;
 import static gitlet.Utils.readContentsAsString;
@@ -188,6 +188,21 @@ public class Repository {
         }
     }
 
+    /** Reset the working directory to the specific commitID version */
+    static void reset(String commitID) {
+        Commit c = Commit.fromFile(commitID);
+        if (c == null) {
+            System.out.println("No commit with that id exists.");
+            return;
+        }
+        if (isUnsafeChanged(c)) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            return;
+        }
+        updateWorkingDirectory(c);
+        writeContents(join(GITLET_DIR, "refs", "heads", getCurrentBranch()), commitID);
+    }
+
     /** Create a new branch */
     static void branch(String branchName) {
         File BRANCH_FOLDER = join(GITLET_DIR, "refs", "heads");
@@ -200,6 +215,68 @@ public class Repository {
         File CURRENT_BRANCH = join(BRANCH_FOLDER, getCurrentBranch());
         createFile(NEW_BRANCH);
         writeContents(NEW_BRANCH, readContentsAsString(CURRENT_BRANCH));
+    }
+
+    /** Remove a exist branch */
+    static void removeBranch(String branchName) {
+        if (branchName.equals(getCurrentBranch())) {
+            System.out.println("Cannot remove the current branch.");
+            return;
+        }
+        File BRANCH_FOLDER = join(GITLET_DIR, "refs", "heads");
+        for (File branch : BRANCH_FOLDER.listFiles()) {
+            if (branchName.equals(branch.getName())) {
+                branch.delete();
+                return;
+            }
+        }
+        System.out.println("A branch with that name does not exist.");
+    }
+
+    /** Check if a working file is untracked in the current branch and would be overwritten by the given commit */
+    static boolean isUnsafeChanged(Commit c) {
+        TreeMap<String, String> comingHEAD = c.getFilesMap();
+        TreeMap<String, String> currentWD = getWorkingDirectoryState();
+        TreeMap<String, String> currentHEAD = getRepositoryState();
+
+        Set<String> s = new HashSet<>();
+        s.addAll(comingHEAD.keySet());
+        s.addAll(currentHEAD.keySet());
+        for (String fileName : s) {
+            boolean inComingHEAD = comingHEAD.containsKey(fileName);
+            boolean inCurrentWD = currentWD.containsKey(fileName);
+            boolean inCurrentHEAD = currentHEAD.containsKey(fileName);
+            if (inCurrentWD
+                    && ((!inCurrentHEAD) || (inCurrentHEAD && !currentHEAD.get(fileName).equals(currentWD.get(fileName))))
+                    && inComingHEAD && !comingHEAD.get(fileName).equals(currentWD.get(fileName))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Update working directory to the given commit version */
+    static void updateWorkingDirectory(Commit c) {
+        TreeMap<String, String> comingHEAD = c.getFilesMap();
+        TreeMap<String, String> currentWD = getWorkingDirectoryState();
+        TreeMap<String, String> currentHEAD = getRepositoryState();
+        Set<String> s = new HashSet<>();
+        s.addAll(comingHEAD.keySet());
+        s.addAll(currentHEAD.keySet());
+        // Update current working directory
+        for (String fileName : s) {
+            boolean inComingHEAD = comingHEAD.containsKey(fileName);
+            boolean inCurrentWD = currentWD.containsKey(fileName);
+            boolean inCurrentHEAD = currentHEAD.containsKey(fileName);
+            File f = join(CWD, fileName);
+            // Any files that are tracked in the current branch but are not present in the checked-out branch are deleted
+            if (inCurrentWD && inCurrentHEAD && !inComingHEAD) f.delete();
+            // Update the current files to the branch HEAD commit version
+            if (inComingHEAD) {
+                createFile(f);
+                writeContents(f, readContentsAsString(getObject(comingHEAD.get(fileName))));
+            }
+        }
     }
 
     /** List all the operations that checkout could implement */
@@ -258,56 +335,66 @@ public class Repository {
                 return;
             }
             Commit c = Commit.fromFile(readContentsAsString(BRANCH));
-            TreeMap<String, String> comingHEAD = c.getFilesMap();
-            TreeMap<String, String> currentWD = getWorkingDirectoryState();
-            TreeMap<String, String> currentHEAD = getRepositoryState();
-
-            Set<String> s = new HashSet<>();
-            s.addAll(comingHEAD.keySet());
-            s.addAll(currentHEAD.keySet());
-            // Raise an error and break if a working file is untracked in the current branch and would be overwritten by the checkout
-            for (String fileName : s) {
-                boolean inComingHEAD = comingHEAD.containsKey(fileName);
-                boolean inCurrentWD = currentWD.containsKey(fileName);
-                boolean inCurrentHEAD = currentHEAD.containsKey(fileName);
-                if (inCurrentWD
-                        && ((!inCurrentHEAD) || (inCurrentHEAD && !currentHEAD.get(fileName).equals(currentWD.get(fileName))))
-                        && inComingHEAD && !comingHEAD.get(fileName).equals(currentWD.get(fileName))) {
-                    System.out.println("This is an untracked file in the way; delete it, or add it and commit it first");
-                    return;
-                }
+            if (isUnsafeChanged(c)) {
+                System.out.println("This is an untracked file in the way; delete it, or add it and commit it first");
+                return;
             }
-            // Update current working directory
-            for (String fileName : s) {
-                boolean inComingHEAD = comingHEAD.containsKey(fileName);
-                boolean inCurrentWD = currentWD.containsKey(fileName);
-                boolean inCurrentHEAD = currentHEAD.containsKey(fileName);
-                File f = join(CWD, fileName);
-                // Any files that are tracked in the current branch but are not present in the checked-out branch are deleted
-                if (inCurrentWD && inCurrentHEAD && !inComingHEAD) f.delete();
-                // Update the current files to the branch HEAD commit version
-                if (inComingHEAD) {
-                    createFile(f);
-                    writeContents(f, readContentsAsString(getObject(comingHEAD.get(fileName))));
-                }
-            }
+            updateWorkingDirectory(c);
             // Update the HEAD to the current branch
             writeContents(join(GITLET_DIR, "HEAD"), "refs/heads/" + branchName);
         }
+    }
+
+    /** Print out commit information with a prettier format */
+    static void log(Commit c) {
+        System.out.println("===");
+        System.out.println("Date: " + c.getDate());
+        System.out.println(c.getMessage());
+        System.out.println();
     }
 
     /** Display each commit backward along the commit tree until the initial commit */
     static void log() {
         // TODO: how to handle merge? when the commit have two parents
         Commit HEAD = getHeadCommit();
-        Commit p = HEAD;
-        while (p != null) {
-            System.out.println("===");
-            System.out.println("Date: " + p.getDate());
-            System.out.println(p.getMessage());
-            System.out.println();
-            p = p.getParentCommit();
+        Commit c = HEAD;
+        while (c != null) {
+            log(c);
+            c = c.getParentCommit();
         }
+    }
+
+    /** Display all commits have created */
+    static void globalLog() {
+        Set<Commit> s = getAllCommits();
+        for (Commit c : s) {
+            log(c);
+        }
+    }
+
+    static void find(String commitMsg) {
+        Set<Commit> s = getAllCommits();
+        boolean found = false;
+        for (Commit c : s) {
+            if (commitMsg.equals(c.getMessage())) {
+                found = true;
+                System.out.println(RepositoryHelper.hashObject(c));
+            }
+        }
+        if (!found) System.out.println("Found no commit with that message.");
+    }
+
+    /** Return all commits have created */
+    private static Set<Commit> getAllCommits() {
+        File[] folders = join(GITLET_DIR, "objects").listFiles();
+        Set<Commit> commits = new HashSet<>();
+        for (File folder : folders) {
+            for (File f : folder.listFiles()) {
+                Commit c = Commit.fromFile(folder.getName() + f.getName());
+                if (c != null) commits.add(c);
+            }
+        }
+        return commits;
     }
 
     /** Return the HEAD commit */

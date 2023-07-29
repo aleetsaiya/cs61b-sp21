@@ -1,5 +1,5 @@
 package gitlet;
-
+import gitlet.Repository.CheckoutOptions;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author Sean Tsai
@@ -15,14 +15,6 @@ public class Main {
             System.out.println("no args");
             System.exit(0);
         }
-
-        // TODO: Remove the temporary print out
-        System.out.print("args: ");
-        for (int i = 0; i < args.length; i++) {
-            System.out.print(args[i] + " ");
-        }
-        System.out.println();
-
         String option = args[0];
         switch(option) {
             case "init":
@@ -30,22 +22,12 @@ public class Main {
                 Repository.addFirstCommit();
                 break;
             case "add":
-                if (args.length != 2) {
-                    // TODO: any specific error message?
-                    System.out.println("Should have at least two arguments");
-                    System.exit(1);
-                }
-                Repository.add(args[1]);
+                if (args.length == 2) Repository.add(args[1]);
+                else System.out.println("Should have onlyj two arguments");
                 break;
             case "commit":
-                if (args.length != 2) {
-                    // TODO: any specific error message?
-                    System.out.println("Should have at least two arguments");
-                    System.exit(1);
-                }
-                String msg = args[1];
-                Commit c = new Commit(msg, Repository.getHeadCommit());
-                Repository.commit(c);
+                if (args.length == 2) Repository.commit(new Commit(args[1], Repository.getHeadCommit()));
+                else System.out.println("Should have only two arguments");
                 break;
             case "status":
                 Repository.status();
@@ -54,19 +36,18 @@ public class Main {
                 Repository.log();
                 break;
             case "rm":
-                if (args.length != 2) {
-                    // TODO: any specific error message?
-                    System.out.println("Should at least two arguments");
-                    System.exit(1);
-                }
-                Repository.rm(args[1]);
+                if (args.length == 2) Repository.rm(args[1]);
+                else System.out.println("Should at only two arguments");
                 break;
             case "branch":
-                if (args.length != 2) {
-                    System.out.println("Should at least two arguments");
-                    System.exit(1);
-                }
-                Repository.branch(args[1]);
+                if (args.length == 2) Repository.branch(args[1]);
+                else System.out.println("Should at only two arguments");
+                break;
+            case "checkout":
+                if (args.length == 2) Repository.checkout(CheckoutOptions.BRANCH, args[1]);
+                else if (args.length == 3) Repository.checkout(CheckoutOptions.FILE, args[2]);
+                else if (args.length == 4) Repository.checkout(CheckoutOptions.COMMIT, args[1], args[3]);
+                else System.out.println("Check the checkout usage to use this script");
                 break;
         }
     }

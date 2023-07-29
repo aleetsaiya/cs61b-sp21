@@ -7,6 +7,7 @@ import java.util.*;
 import static gitlet.RepositoryHelper.hashFile;
 import static gitlet.Utils.*;
 import static gitlet.RepositoryHelper.createFile;
+import static gitlet.Utils.readContentsAsString;
 
 // TODO: any imports you need here
 
@@ -18,7 +19,7 @@ import static gitlet.RepositoryHelper.createFile;
  */
 public class Repository {
     /** The current working directory. */
-    static final File CWD = new File(System.getProperty("user.dir"));
+    static final File CWD = new File(System.getProperty("user.dir"), "temp");
     /** The .gitlet directory. */
     static final File GITLET_DIR = Utils.join(CWD, ".gitlet");
 
@@ -70,7 +71,7 @@ public class Repository {
                     else modifyFiles.add(fileName + " (modified)");
                 }
                 // Tracked in the current commit, changed in the working directory, but not staged
-                else if (!inStag && inRepos) modifyFiles.add(fileName + " (modified)");
+                else if (!inStag && inRepos && !wd.get(fileName).equals(repos.get(fileName))) modifyFiles.add(fileName + " (modified)");
                 // Tracked in the current commit, changed in the working directory, and have staged
                 else if (inStag && inRepos && !stag.get(fileName).equals(repos.get(fileName))) stagedFiles.add(fileName);
             }
@@ -122,6 +123,10 @@ public class Repository {
         // Update the commit file map to the current staging state
         TreeMap<String, String> stag = getStagingState();
         TreeMap<String, String> repos = getRepositoryState();
+        if (stag.size() == 0) {
+            System.out.println("Do not have files in staging area");
+            return;
+        }
         for (String fileName : stag.keySet()) {
             String hash = stag.get(fileName);
             if (hash.equals("DELETE")) repos.remove(fileName);
@@ -192,70 +197,95 @@ public class Repository {
         writeContents(NEW_BRANCH, readContentsAsString(CURRENT_BRANCH));
     }
 
-    static enum CheckoutOptions {
+    enum CheckoutOptions {
         FILE,
         COMMIT,
         BRANCH
     }
 
-    /** Return whether the given file will overwrite the current working directory file */
-    static private boolean willOverwriteUntrackedFiles(String fileName, String hash) {
-        File f = join(CWD, fileName);
-        if (!f.exists()) return false;
-        String wdHash = hashFile(f, String.class);
-        return !wdHash.equals(hash);
-    }
-
-    /** Return whether the given commit will overwrite the current working directory files */
-    static private boolean willOverwriteUntrackedFiles(Commit c) {
-        TreeMap<String, String> wd = getWorkingDirectoryState();
-        TreeMap<String, String> m = c.getFilesMap();
-        for (String fileName : m.keySet()) {
-            if (wd.containsKey(fileName) && !wd.get(fileName).equals(m.get(fileName)))
-                return true;
-        }
-        return false;
-    }
-
-    // TODO: Complete checkout
     static void checkout(CheckoutOptions option, String... vals) {
         // Checkout a file to the HEAD commit version
         if (option.equals(CheckoutOptions.FILE)) {
-            String fileName = vals[0];
             // Error Handling
+            String fileName = vals[0];
             TreeMap<String, String> repos = getRepositoryState();
-            if (vals.length != 1) {
-                System.out.println("Should have only one argument");
-                return;
-            }
             if (!repos.containsKey(fileName)) {
                 System.out.println("File does not exist in that commit");
                 return;
             }
-            if (willOverwriteUntrackedFiles(fileName, repos.get(fileName))) {
-                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-                return;
-            }
             // Update the WD file to the HEAD commit version
-            File HEAD_VERSION = getObject(repos.get(fileName));
             File f = join(CWD, fileName);
             createFile(f);
-            writeContents(f, readContentsAsString(HEAD_VERSION));
+            writeContents(f, readContentsAsString(getObject(repos.get(fileName))));
         }
         // Checkout a file to a specific commit
         else if (option.equals(CheckoutOptions.COMMIT)) {
-            if (vals.length != 2)
-                throw new IllegalArgumentException("Should have only two arguments");
-
+            // Error Handling
+            String commitID = vals[0];
+            String fileName = vals[1];
+            Commit commit = Commit.fromFile(commitID);
+            if (commit == null) {
+                System.out.println("No commit with that id exists.");
+                return;
+            }
+            TreeMap<String, String> files = commit.getFilesMap();
+            if (!files.containsKey(fileName)) {
+                System.out.println("File does not exist in that commit");
+                return;
+            }
+            File f = join(CWD, fileName);
+            createFile(f);
+            writeContents(f, readContentsAsString(getObject(files.get(fileName))));
         }
         // Checkout to a specific branch
         else if (option.equals(CheckoutOptions.BRANCH)) {
-            if (vals.length != 1)
-                throw new IllegalArgumentException("Should have only one arguments");
-        }
-        else {
-            System.out.println("Invalid checkout option");
-            System.exit(1);
+            // Error Handling
+            String branchName = vals[0];
+            File BRANCH = join(GITLET_DIR, "refs", "heads", branchName);
+            if (!BRANCH.exists()) {
+                System.out.println("No such branch exists.");
+                return;
+            }
+            if (branchName.equals(getCurrentBranch())) {
+                System.out.println("No need to checkout the current branch.");
+                return;
+            }
+            Commit c = Commit.fromFile(readContentsAsString(BRANCH));
+            TreeMap<String, String> comingHEAD = c.getFilesMap();
+            TreeMap<String, String> currentWD = getWorkingDirectoryState();
+            TreeMap<String, String> currentHEAD = getRepositoryState();
+
+            Set<String> s = new HashSet<>();
+            s.addAll(comingHEAD.keySet());
+            s.addAll(currentHEAD.keySet());
+            // Raise an error and break if a working file is untracked in the current branch and would be overwritten by the checkout
+            for (String fileName : s) {
+                boolean inComingHEAD = comingHEAD.containsKey(fileName);
+                boolean inCurrentWD = currentWD.containsKey(fileName);
+                boolean inCurrentHEAD = currentHEAD.containsKey(fileName);
+                if (inCurrentWD
+                        && ((!inCurrentHEAD) || (inCurrentHEAD && !currentHEAD.get(fileName).equals(currentWD.get(fileName))))
+                        && inComingHEAD && !comingHEAD.get(fileName).equals(currentWD.get(fileName))) {
+                    System.out.println("This is an untracked file in the way; delete it, or add it and commit it first");
+                    return;
+                }
+            }
+            // Update current working directory
+            for (String fileName : s) {
+                boolean inComingHEAD = comingHEAD.containsKey(fileName);
+                boolean inCurrentWD = currentWD.containsKey(fileName);
+                boolean inCurrentHEAD = currentHEAD.containsKey(fileName);
+                File f = join(CWD, fileName);
+                // Any files that are tracked in the current branch but are not present in the checked-out branch are deleted
+                if (inCurrentWD && inCurrentHEAD && !inComingHEAD) f.delete();
+                // Update the current files to the branch HEAD commit version
+                if (inComingHEAD) {
+                    createFile(f);
+                    writeContents(f, readContentsAsString(getObject(comingHEAD.get(fileName))));
+                }
+            }
+            // Update the HEAD to the current branch
+            writeContents(join(GITLET_DIR, "HEAD"), "refs/heads/" + branchName);
         }
     }
 
@@ -326,8 +356,14 @@ public class Repository {
         Map<String, String> m = RepositoryHelper.toObjectPath(hash);
         File folder = join(GITLET_DIR, "objects", m.get("folder"));
         if (folder.exists()) {
-            File f = join(folder, m.get("file"));
-            return f;
+            String fileHash = m.get("file");
+            if (fileHash.length() < 40) {
+                for (File f : folder.listFiles()) {
+                    if (f.getName().startsWith(fileHash)) return f;
+                }
+                return null;
+            }
+            return join(folder, m.get("file"));
         }
         return null;
     }
@@ -335,11 +371,9 @@ public class Repository {
     /** Save an object to storage as the given file name */
     static void saveObject(Serializable o) {
         String hash;
-        if (o instanceof File) {
-            hash = RepositoryHelper.hashFile((File) o, String.class);
-        } else {
-            hash = RepositoryHelper.hashObject(o);
-        }
+        if (o instanceof File) hash = RepositoryHelper.hashFile((File) o, String.class);
+        else hash = RepositoryHelper.hashObject(o);
+
         Map<String, String> map = RepositoryHelper.toObjectPath(hash);
         File folder = join(GITLET_DIR, "objects", map.get("folder"));
         if (!folder.exists()) {
@@ -347,6 +381,7 @@ public class Repository {
         }
         File f = join(folder, map.get("file"));
         createFile(f);
-        writeObject(f, o);
+        if (o instanceof File) writeContents(f, readContentsAsString((File)o));
+        else writeObject(f, o);
     }
 }

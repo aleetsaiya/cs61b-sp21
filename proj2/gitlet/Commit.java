@@ -80,9 +80,18 @@ public class Commit implements Serializable {
     }
 
     /** Get commit information from the storage folder by the given commit hash */
-    static Commit fromFile(String hash) {
+    static Commit fromFile(String hash){
         File COMMIT_FILE = Repository.getObject(hash);
-        return readObject(COMMIT_FILE, Commit.class);
+        if (COMMIT_FILE == null || !COMMIT_FILE.exists()) {
+            return null;
+        }
+        try {
+            return readObject(COMMIT_FILE, Commit.class);
+        }
+        // When the target object is not the Commit object
+        catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     /** Save the commit into storage folder */
